@@ -1,10 +1,11 @@
 # Roadmap — próximos upgrades
 
-## Fase 2 — Voz avanzada
-- [ ] STT externo (Deepgram / Groq Whisper) detrás de `services/stt.ts` (la interfaz ya existe; `/api/transcribe` lo activa solo).
-- [ ] TTS de calidad (ElevenLabs) con streaming de audio, reemplazando `speechSynthesis`.
-- [ ] Modo manos libres: escucha continua + auto-envío.
-- [ ] Visualización de audio reactiva en el orbe del chat.
+## Fase 2 — Voz avanzada ✅ (ver docs/voice.md)
+- [x] STT externo (Deepgram / Groq Whisper) detrás de `services/stt.ts`, activado por env vars.
+- [x] TTS de calidad (ElevenLabs, streaming desde el servidor) con fallback automático a `speechSynthesis`.
+- [x] Modo manos libres: escuchar → enviar → hablar → volver a escuchar, con auto-apagado tras silencio.
+- [x] Orbe reactivo al audio (WebAudio AnalyserNode) con estados listening/thinking/speaking.
+- [ ] Pendiente fino: playback con MediaSource para latencia menor en respuestas largas; wake word.
 
 ## Fase 3 — Integraciones
 - [ ] Calendario (Google Calendar / CalDAV): lectura LOW, escritura HIGH con confirmación.

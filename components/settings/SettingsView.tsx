@@ -5,11 +5,18 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { createClient } from '@/lib/supabase/client';
 
+interface ProviderStatus {
+  configured: boolean;
+  provider: string | null;
+}
+
 export function SettingsView() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [tts, setTts] = useState(false);
   const [lang, setLang] = useState('es-MX');
+  const [ttsProvider, setTtsProvider] = useState<ProviderStatus | null>(null);
+  const [sttProvider, setSttProvider] = useState<ProviderStatus | null>(null);
 
   useEffect(() => {
     setTts(localStorage.getItem('aura:tts') === 'on');
@@ -17,6 +24,14 @@ export function SettingsView() {
     createClient()
       .auth.getUser()
       .then(({ data }) => setEmail(data.user?.email ?? null));
+    fetch('/api/tts')
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setTtsProvider)
+      .catch(() => {});
+    fetch('/api/transcribe')
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setSttProvider)
+      .catch(() => {});
   }, []);
 
   function toggleTts() {
@@ -90,6 +105,29 @@ export function SettingsView() {
                 <option value="es-ES">Español (ES)</option>
                 <option value="en-US">English (US)</option>
               </select>
+            </div>
+            <div className="mt-2 border-t border-aura-border pt-3">
+              <p className="mb-1.5 text-xs text-aura-muted">Server providers (docs/voice.md):</p>
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                    ttsProvider?.configured
+                      ? 'border-aura-accent/40 text-aura-accent'
+                      : 'border-aura-muted/40 text-aura-muted'
+                  }`}
+                >
+                  Voice: {ttsProvider?.configured ? ttsProvider.provider : 'browser (fallback)'}
+                </span>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                    sttProvider?.configured
+                      ? 'border-aura-accent/40 text-aura-accent'
+                      : 'border-aura-muted/40 text-aura-muted'
+                  }`}
+                >
+                  Transcription: {sttProvider?.configured ? sttProvider.provider : 'browser only'}
+                </span>
+              </div>
             </div>
           </section>
 

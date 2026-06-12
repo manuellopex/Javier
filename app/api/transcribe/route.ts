@@ -4,11 +4,25 @@ import { rateLimit } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+/** GET → provider status (used by Settings to show what's active). */
+export async function GET() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const stt = getSTT();
+  return Response.json({ configured: Boolean(stt), provider: stt?.name ?? null });
+}
 
 /**
- * Audio transcription fallback for browsers without the Web Speech API.
- * Accepts multipart/form-data with an `audio` file. Requires an external
- * STT provider to be configured in services/stt.ts.
+ * Audio transcription for browsers without the Web Speech API (or when a
+ * higher-quality provider is preferred). multipart/form-data:
+ *   audio    — recorded file (webm/mp4/ogg)
+ *   language — optional BCP-47 hint, e.g. "es-MX"
  */
 export async function POST(req: Request) {
   const supabase = createClient();
@@ -25,7 +39,7 @@ export async function POST(req: Request) {
     return Response.json(
       {
         error:
-          'No speech-to-text provider configured. Voice input currently requires a browser with Web Speech API support (Safari/Chrome). To enable server-side transcription, implement a provider in services/stt.ts.',
+          'No speech-to-text provider configured. Set DEEPGRAM_API_KEY or GROQ_API_KEY (see docs/voice.md). Browsers with Web Speech API support do not need this endpoint.',
       },
       { status: 501 }
     );
@@ -36,7 +50,24 @@ export async function POST(req: Request) {
   if (!(audio instanceof Blob)) {
     return Response.json({ error: 'audio file is required' }, { status: 400 });
   }
+  if (audio.size > 20 * 1024 * 1024) {
+    return Response.json({ error: 'audio too large (max 20MB)' }, { status: 413 });
+  }
 
-  const text = await stt.transcribe(audio, audio.type || 'audio/webm');
-  return Response.json({ text });
+  const language = form.get('language');
+
+  try {
+    const text = await stt.transcribe(
+      audio,
+      audio.type || 'audio/webm',
+      typeof language === 'string' && language ? language : undefined
+    );
+    return Response.json({ text, provider: stt.name });
+  } catch (err) {
+    console.error('[api/transcribe]', err);
+    return Response.json(
+      { error: err instanceof Error ? err.message : 'Transcription failed' },
+      { status: 502 }
+    );
+  }
 }

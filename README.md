@@ -7,7 +7,7 @@ Asistente personal privado estilo *mission control*: PWA oscura y minimalista co
 ## Qué incluye el MVP
 
 - **Chat con AURA** — streaming SSE, herramientas (tareas/memoria) ejecutadas por el modelo, historial de conversaciones.
-- **Voz** — entrada por Web Speech API (Safari/Chrome, incluido iPhone) con fallback a grabación + endpoint de transcripción enchufable; lectura de respuestas con TTS del navegador (opcional en Settings).
+- **Voz (Fase 2 incluida)** — entrada por Web Speech API (Safari/Chrome, incluido iPhone) con fallback a grabación + transcripción server-side (Deepgram o Groq Whisper vía env vars); respuestas habladas con ElevenLabs (fallback automático al TTS del navegador); **modo manos libres** con auto-envío y orbe reactivo al micrófono. Detalles: [docs/voice.md](./docs/voice.md).
 - **Tareas** — crear (UI o chat), listar, completar, borrar; prioridades y fechas.
 - **Memoria** — AURA guarda contexto útil; tú lo ves, agregas y borras. Se inyecta en cada conversación.
 - **Sistema de permisos** — riesgo LOW/MEDIUM/HIGH/CRITICAL; las acciones HIGH/CRITICAL crean comandos pendientes que **tú confirmas** en la UI. Todo auditado en `security_logs`.

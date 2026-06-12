@@ -6,7 +6,9 @@ import { MessageBubble } from './MessageBubble';
 import { MicButton } from './MicButton';
 import { PendingCommandCard } from './PendingCommandCard';
 import { ConversationList } from './ConversationList';
-import { useSpeech, speak } from '@/hooks/useSpeech';
+import { VoiceOrb, type OrbState } from './VoiceOrb';
+import { useSpeech } from '@/hooks/useSpeech';
+import { useTTS } from '@/hooks/useTTS';
 import type { AssistantStatus, ChatStreamEvent, Command, ToolCallRecord } from '@/types';
 
 export interface UIMessage {
@@ -19,6 +21,9 @@ export interface UIMessage {
 
 type PendingCmd = Pick<Command, 'id' | 'action' | 'description' | 'risk'>;
 
+/** Consecutive silent listening rounds before hands-free auto-disables. */
+const MAX_SILENT_ROUNDS = 2;
+
 export function ChatView() {
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
@@ -27,11 +32,20 @@ export function ChatView() {
   const [pendingCommands, setPendingCommands] = useState<PendingCmd[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [handsFree, setHandsFree] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [lang, setLang] = useState('es-MX');
   const scrollRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(false);
+  const handsFreeRef = useRef(false);
+  const silentRoundsRef = useRef(0);
 
-  const ttsEnabled =
-    typeof window !== 'undefined' && localStorage.getItem('aura:tts') === 'on';
+  const { speak, stop: stopSpeaking, speaking } = useTTS(lang);
+
+  useEffect(() => {
+    setTtsEnabled(localStorage.getItem('aura:tts') === 'on');
+    setLang(localStorage.getItem('aura:lang') ?? 'es-MX');
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -45,6 +59,7 @@ export function ChatView() {
       setError(null);
       setInput('');
       setStatus('thinking');
+      stopSpeaking();
 
       const userMsg: UIMessage = { id: `u-${Date.now()}`, role: 'user', content: trimmed };
       const assistantMsg: UIMessage = {
@@ -55,6 +70,8 @@ export function ChatView() {
         toolCalls: [],
       };
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
+
+      let fullText = '';
 
       try {
         const res = await fetch('/api/chat', {
@@ -71,7 +88,6 @@ export function ChatView() {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        let fullText = '';
 
         const handleEvent = (event: ChatStreamEvent) => {
           switch (event.type) {
@@ -131,7 +147,6 @@ export function ChatView() {
         setMessages((prev) =>
           prev.map((m) => (m.id === assistantMsg.id ? { ...m, streaming: false } : m))
         );
-        if (ttsEnabled && fullText) speak(fullText);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong');
         setMessages((prev) => prev.filter((m) => m.id !== assistantMsg.id || m.content));
@@ -139,14 +154,44 @@ export function ChatView() {
         busyRef.current = false;
         setStatus((s) => (s === 'action_required' ? s : 'online'));
       }
+
+      // --- Spoken reply + hands-free loop ------------------------------------
+      if (fullText && (handsFreeRef.current || ttsEnabled)) {
+        await speak(fullText);
+        if (handsFreeRef.current) {
+          silentRoundsRef.current = 0;
+          startListeningRef.current?.();
+        }
+      }
     },
-    [conversationId, ttsEnabled]
+    [conversationId, ttsEnabled, speak, stopSpeaking]
   );
 
   const { state: speechState, start: startListening, stop: stopListening } = useSpeech({
-    onResult: (text) => sendMessage(text),
+    lang,
+    onResult: (text) => {
+      silentRoundsRef.current = 0;
+      sendMessage(text);
+    },
     onError: (msg) => setError(msg),
+    onEnd: (gotResult) => {
+      // Hands-free: restart listening after a silent round; give up after a few.
+      if (!handsFreeRef.current || gotResult || busyRef.current) return;
+      silentRoundsRef.current += 1;
+      if (silentRoundsRef.current > MAX_SILENT_ROUNDS) {
+        handsFreeRef.current = false;
+        setHandsFree(false);
+        return;
+      }
+      setTimeout(() => {
+        if (handsFreeRef.current && !busyRef.current) startListeningRef.current?.();
+      }, 400);
+    },
   });
+
+  // Stable reference so sendMessage (defined earlier) can restart listening.
+  const startListeningRef = useRef<(() => void) | null>(null);
+  startListeningRef.current = startListening;
 
   useEffect(() => {
     setStatus((s) => {
@@ -155,6 +200,28 @@ export function ChatView() {
       return s;
     });
   }, [speechState]);
+
+  function toggleHandsFree() {
+    const next = !handsFree;
+    setHandsFree(next);
+    handsFreeRef.current = next;
+    silentRoundsRef.current = 0;
+    if (next) {
+      startListening();
+    } else {
+      stopListening();
+      stopSpeaking();
+    }
+  }
+
+  const orbState: OrbState =
+    speechState === 'listening'
+      ? 'listening'
+      : speaking
+        ? 'speaking'
+        : status === 'thinking'
+          ? 'thinking'
+          : 'idle';
 
   async function resolveCommand(commandId: string, approve: boolean) {
     const res = await fetch('/api/commands/confirm', {
@@ -226,12 +293,24 @@ export function ChatView() {
             >
               ☰ History
             </button>
-            <button
-              onClick={newConversation}
-              className="rounded-lg px-2 py-1 text-xs text-aura-muted transition hover:bg-aura-raised hover:text-aura-text"
-            >
-              + New conversation
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={toggleHandsFree}
+                className={`rounded-lg px-2 py-1 text-xs transition ${
+                  handsFree
+                    ? 'bg-aura-accent/15 font-medium text-aura-accent'
+                    : 'text-aura-muted hover:bg-aura-raised hover:text-aura-text'
+                }`}
+              >
+                ◉ Hands-free
+              </button>
+              <button
+                onClick={newConversation}
+                className="rounded-lg px-2 py-1 text-xs text-aura-muted transition hover:bg-aura-raised hover:text-aura-text"
+              >
+                + New conversation
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -260,6 +339,7 @@ export function ChatView() {
 
           {/* Composer */}
           <div className="border-t border-aura-border bg-aura-bg/60 px-4 py-3 backdrop-blur-md md:px-6">
+            {handsFree && <VoiceOrb state={orbState} onExit={toggleHandsFree} />}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
