@@ -1,5 +1,15 @@
 # Roadmap — próximos upgrades
 
+## Sistema de agentes ✅ (ver docs/agents.md)
+- [x] Registro modular de agentes (7 especializados + orquestador) sobre un solo motor con riesgo/aprobaciones/audit compartidos.
+- [x] Workspaces: Content Lab, YouTube Research, Music Finder, Sales Desk, Production Hub, TTP Growth, Daily Brief, directorio /agents.
+- [x] Tablas leads, projects, contents, content_metrics; tareas por proyecto; conversaciones por agente.
+- [x] YouTube Data API + Spotify Web API conectadas (por env vars); métricas de Instagram manuales sobre la tabla definitiva.
+- [ ] Instagram Graph API → alimentar content_metrics automáticamente.
+- [ ] Spotify OAuth de usuario → crear playlists reales; bibliotecas licenciadas (Artlist/Epidemic).
+- [ ] LaunchPass/Discord/Stripe → segmentos TTP automáticos (miembros, inactivos, pagos).
+- [ ] Brief diario programado (cron) con push notification.
+
 ## Fase 2 — Voz avanzada ✅ (ver docs/voice.md)
 - [x] STT externo (Deepgram / Groq Whisper) detrás de `services/stt.ts`, activado por env vars.
 - [x] TTS de calidad (ElevenLabs, streaming desde el servidor) con fallback automático a `speechSynthesis`.

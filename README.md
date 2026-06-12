@@ -4,9 +4,10 @@ Asistente personal privado estilo *mission control*: PWA oscura y minimalista co
 
 > Inspirado en la idea de un asistente tipo JARVIS, pero 100% original: sin marcas, voces ni assets de terceros.
 
-## Qué incluye el MVP
+## Qué incluye
 
-- **Chat con AURA** — streaming SSE, herramientas (tareas/memoria) ejecutadas por el modelo, historial de conversaciones.
+- **Sistema de agentes modulares** — 7 agentes especializados + el orquestador general, todos sobre el mismo motor (misma matriz de riesgo, misma cola de aprobaciones, mismo audit log): **Content Growth** (reels, hooks, métricas, patrones), **YouTube Research** (YouTube Data API), **Music Direction** (Spotify API + advertencia de licencias), **Sales** (pipeline de leads, follow-ups, cotizaciones), **Production Ops** (proyectos, shot lists, call sheets), **TTP Growth** (webinars, segmentos, Discord, SOPs) y **Daily Strategy** (brief diario priorizado por impacto económico). Cada uno con su workspace: `/content`, `/youtube`, `/music`, `/sales`, `/production`, `/ttp`, `/brief`. Detalles: [docs/agents.md](./docs/agents.md).
+- **Chat con AURA** — streaming SSE, selector de agente, herramientas ejecutadas por el modelo, historial de conversaciones.
 - **Voz (Fase 2 incluida)** — entrada por Web Speech API (Safari/Chrome, incluido iPhone) con fallback a grabación + transcripción server-side (Deepgram o Groq Whisper vía env vars); respuestas habladas con ElevenLabs (fallback automático al TTS del navegador); **modo manos libres** con auto-envío y orbe reactivo al micrófono. Detalles: [docs/voice.md](./docs/voice.md).
 - **Tareas** — crear (UI o chat), listar, completar, borrar; prioridades y fechas.
 - **Memoria** — AURA guarda contexto útil; tú lo ves, agregas y borras. Se inyecta en cada conversación.

@@ -11,8 +11,117 @@ export interface Conversation {
   user_id: string;
   title: string;
   source: 'web' | 'shortcut';
+  agent_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// --- Agent-system domain ------------------------------------------------------
+
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost';
+export type LeadSource =
+  | 'instagram'
+  | 'youtube'
+  | 'webinar'
+  | 'ttp'
+  | 'referral'
+  | 'website'
+  | 'other';
+
+export interface Lead {
+  id: string;
+  user_id: string;
+  name: string;
+  contact: string | null;
+  source: LeadSource;
+  segment: string | null;
+  interest: string | null;
+  value_estimate: number | null;
+  currency: string;
+  status: LeadStatus;
+  notes: string | null;
+  last_contact_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ProjectKind = 'reel' | 'video' | 'campaign' | 'webinar' | 'automation' | 'other';
+export type ProjectStatus = 'planning' | 'production' | 'post' | 'review' | 'delivered' | 'archived';
+
+export interface Project {
+  id: string;
+  user_id: string;
+  client_id: string | null;
+  name: string;
+  kind: ProjectKind;
+  status: ProjectStatus;
+  due_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ContentType =
+  | 'idea'
+  | 'hook'
+  | 'script'
+  | 'caption'
+  | 'thumbnail'
+  | 'calendar'
+  | 'report'
+  | 'reference'
+  | 'playlist'
+  | 'email'
+  | 'post'
+  | 'sop'
+  | 'brief';
+
+export type ContentStatus = 'draft' | 'approved' | 'published' | 'archived';
+
+export interface ContentItem {
+  id: string;
+  user_id: string;
+  project_id: string | null;
+  type: ContentType;
+  title: string;
+  body: string;
+  platform: string | null;
+  source_url: string | null;
+  status: ContentStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContentMetric {
+  id: string;
+  user_id: string;
+  content_id: string | null;
+  platform: string;
+  ref: string | null;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saves: number | null;
+  follows: number | null;
+  watch_seconds: number | null;
+  posted_at: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+/** Public agent descriptor (safe to ship to the client). */
+export interface AgentInfo {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  icon: string;
+  href: string;
+  tools: string[];
+  canDo: string[];
+  needsApproval: string[];
+  suggestions: string[];
 }
 
 export type MessageRole = 'user' | 'assistant' | 'system';
@@ -41,6 +150,7 @@ export type TaskPriority = 'low' | 'medium' | 'high';
 export interface Task {
   id: string;
   user_id: string;
+  project_id: string | null;
   title: string;
   notes: string | null;
   status: TaskStatus;

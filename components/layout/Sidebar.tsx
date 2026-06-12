@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { NAV_ITEMS } from './nav-items';
+import { NAV_GROUPS } from './nav-items';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -29,26 +29,37 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-2">
-        {NAV_ITEMS.map((item) => {
-          const active = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-                active
-                  ? 'bg-aura-accent/10 font-medium text-aura-accent'
-                  : 'text-aura-muted hover:bg-aura-raised hover:text-aura-text'
-              }`}
-            >
-              <span className="text-base leading-none" aria-hidden>
-                {item.icon}
-              </span>
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-2">
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={gi}>
+            {group.label && (
+              <p className="px-3 pb-1 pt-2 text-[9px] font-semibold uppercase tracking-widest text-aura-muted/70">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+                      active
+                        ? 'bg-aura-accent/10 font-medium text-aura-accent'
+                        : 'text-aura-muted hover:bg-aura-raised hover:text-aura-text'
+                    }`}
+                  >
+                    <span className="text-base leading-none" aria-hidden>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-aura-border p-3">

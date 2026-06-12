@@ -12,7 +12,32 @@ const TOOL_LABELS: Record<string, string> = {
   search_memory: 'Memory searched',
   list_memories: 'Memories listed',
   delete_memory: 'Memory deletion requested',
+  create_event: 'Event created',
+  list_events: 'Calendar checked',
+  delete_event: 'Event deletion requested',
+  send_email: 'Email queued for approval',
+  create_lead: 'Lead created',
+  update_lead: 'Lead updated',
+  list_leads: 'Pipeline checked',
+  create_project: 'Project created',
+  update_project: 'Project updated',
+  list_projects: 'Projects checked',
+  save_content: 'Content saved',
+  list_contents: 'Contents checked',
+  log_content_metrics: 'Metrics logged',
+  list_content_metrics: 'Metrics analyzed',
+  youtube_search: 'YouTube searched',
+  spotify_search: 'Spotify searched',
+  create_quote: 'Quote drafted',
+  list_quotes: 'Quotes checked',
+  create_client: 'Client created',
+  list_clients: 'Clients checked',
+  list_pending_approvals: 'Approvals checked',
 };
+
+function toolLabel(name: string): string {
+  return TOOL_LABELS[name] ?? name.replace(/_/g, ' ');
+}
 
 export function MessageBubble({ message }: { message: UIMessage }) {
   const isUser = message.role === 'user';
@@ -40,7 +65,7 @@ export function MessageBubble({ message }: { message: UIMessage }) {
                 }`}
               >
                 {tc.status === 'executed' ? '✓' : tc.status === 'pending_confirmation' ? '⏸' : '✕'}{' '}
-                {TOOL_LABELS[tc.name] ?? tc.name}
+                {toolLabel(tc.name)}
               </span>
             ))}
           </div>

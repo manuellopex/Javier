@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { rateLimit, clientIp } from '@/lib/security/rate-limit';
 import { audit } from '@/lib/security/audit';
 import { runAssistantTurn } from '@/services/assistant';
+import { getAgent } from '@/lib/agents/registry';
+import { toolsFor, ASSISTANT_TOOLS } from '@/lib/ai/tools';
 import type { LLMMessage } from '@/lib/ai';
 import type { ChatStreamEvent } from '@/types';
 
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { message?: string; conversationId?: string };
+  let body: { message?: string; conversationId?: string; agentId?: string };
   try {
     body = await req.json();
   } catch {
@@ -42,6 +44,9 @@ export async function POST(req: Request) {
   if (!message) return Response.json({ error: 'message is required' }, { status: 400 });
   if (message.length > 8000)
     return Response.json({ error: 'message too long (max 8000 chars)' }, { status: 400 });
+
+  const agent = getAgent(body.agentId);
+  const agentTools = agent.tools.includes('*') ? ASSISTANT_TOOLS : toolsFor(agent.tools);
 
   // --- Resolve or create the conversation -----------------------------------
   let conversationId = body.conversationId ?? null;
@@ -57,7 +62,7 @@ export async function POST(req: Request) {
   if (!conversationId) {
     const { data, error } = await supabase
       .from('conversations')
-      .insert({ user_id: user.id, title: message.slice(0, 80), source: 'web' })
+      .insert({ user_id: user.id, title: message.slice(0, 80), source: 'web', agent_id: agent.id })
       .select('id')
       .single();
     if (error || !data) {
@@ -101,7 +106,7 @@ export async function POST(req: Request) {
   await audit({
     userId: user.id,
     event: 'chat.message',
-    detail: { conversation_id: conversationId, length: message.length },
+    detail: { conversation_id: conversationId, length: message.length, agent: agent.id },
     ip: clientIp(req),
   });
 
@@ -129,6 +134,9 @@ export async function POST(req: Request) {
           history,
           memoriesContext,
           emit,
+          agentId: agent.id,
+          system: agent.systemPrompt,
+          tools: agentTools,
         });
 
         const { data: saved } = await supabase

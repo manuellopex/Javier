@@ -12,12 +12,21 @@ import type { RiskLevel } from '@/types';
  *  CRITICAL — payments, credentials, mass deletion, private data. → ALWAYS requires confirmation
  */
 export const TOOL_RISK: Record<string, RiskLevel> = {
+  // LOW — read, search, analyze
   list_tasks: 'LOW',
   search_memory: 'LOW',
   list_memories: 'LOW',
   list_events: 'LOW',
   list_clients: 'LOW',
   list_quotes: 'LOW',
+  list_leads: 'LOW',
+  list_projects: 'LOW',
+  list_contents: 'LOW',
+  list_content_metrics: 'LOW',
+  list_pending_approvals: 'LOW',
+  youtube_search: 'LOW',
+  spotify_search: 'LOW',
+  // MEDIUM — create drafts, tasks, records (direct + audit log)
   create_task: 'MEDIUM',
   complete_task: 'MEDIUM',
   save_memory: 'MEDIUM',
@@ -25,11 +34,20 @@ export const TOOL_RISK: Record<string, RiskLevel> = {
   create_client: 'MEDIUM',
   update_client: 'MEDIUM',
   create_quote: 'MEDIUM',
+  create_lead: 'MEDIUM',
+  update_lead: 'MEDIUM',
+  create_project: 'MEDIUM',
+  update_project: 'MEDIUM',
+  save_content: 'MEDIUM',
+  log_content_metrics: 'MEDIUM',
+  // HIGH — always require manual approval
   delete_task: 'HIGH',
   delete_memory: 'HIGH',
   delete_event: 'HIGH',
   send_email: 'HIGH',
+  publish_content: 'HIGH',
   run_desktop_command: 'HIGH',
+  // CRITICAL — always require manual approval
   make_payment: 'CRITICAL',
 };
 

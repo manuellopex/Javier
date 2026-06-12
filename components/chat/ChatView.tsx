@@ -9,7 +9,7 @@ import { ConversationList } from './ConversationList';
 import { VoiceOrb, type OrbState } from './VoiceOrb';
 import { useSpeech } from '@/hooks/useSpeech';
 import { useTTS } from '@/hooks/useTTS';
-import type { AssistantStatus, ChatStreamEvent, Command, ToolCallRecord } from '@/types';
+import type { AgentInfo, AssistantStatus, ChatStreamEvent, Command, ToolCallRecord } from '@/types';
 
 export interface UIMessage {
   id: string;
@@ -35,6 +35,8 @@ export function ChatView() {
   const [handsFree, setHandsFree] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [lang, setLang] = useState('es-MX');
+  const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [agentId, setAgentId] = useState('aura');
   const scrollRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(false);
   const handsFreeRef = useRef(false);
@@ -45,6 +47,10 @@ export function ChatView() {
   useEffect(() => {
     setTtsEnabled(localStorage.getItem('aura:tts') === 'on');
     setLang(localStorage.getItem('aura:lang') ?? 'es-MX');
+    fetch('/api/agents')
+      .then((r) => (r.ok ? r.json() : { agents: [] }))
+      .then((d) => setAgents(d.agents ?? []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -77,7 +83,7 @@ export function ChatView() {
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: trimmed, conversationId }),
+          body: JSON.stringify({ message: trimmed, conversationId, agentId }),
         });
 
         if (!res.ok || !res.body) {
@@ -164,7 +170,7 @@ export function ChatView() {
         }
       }
     },
-    [conversationId, ttsEnabled, speak, stopSpeaking]
+    [conversationId, agentId, ttsEnabled, speak, stopSpeaking]
   );
 
   const { state: speechState, start: startListening, stop: stopListening } = useSpeech({
@@ -287,12 +293,31 @@ export function ChatView() {
         <div className="flex flex-1 flex-col">
           {/* Toolbar */}
           <div className="flex items-center justify-between px-4 py-2 md:px-6">
-            <button
-              onClick={() => setHistoryOpen((v) => !v)}
-              className="rounded-lg px-2 py-1 text-xs text-aura-muted transition hover:bg-aura-raised hover:text-aura-text"
-            >
-              ☰ History
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setHistoryOpen((v) => !v)}
+                className="rounded-lg px-2 py-1 text-xs text-aura-muted transition hover:bg-aura-raised hover:text-aura-text"
+              >
+                ☰ History
+              </button>
+              {agents.length > 0 && (
+                <select
+                  value={agentId}
+                  onChange={(e) => {
+                    setAgentId(e.target.value);
+                    newConversation();
+                  }}
+                  className="rounded-lg border border-aura-border bg-aura-surface px-2 py-1 text-xs text-aura-text outline-none"
+                  title="Agente activo (cambiar inicia conversación nueva)"
+                >
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.icon} {a.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={toggleHandsFree}
