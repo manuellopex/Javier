@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-aura-bg text-aura-text antialiased;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(57, 210, 192, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 110%, rgba(57, 210, 192, 0.04), transparent);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism card */
+.glass {
+  @apply rounded-2xl border border-aura-border bg-aura-surface/70 backdrop-blur-md;
+}
+
+.glass-raised {
+  @apply rounded-2xl border border-aura-border bg-aura-raised/80 backdrop-blur-md;
+}
+
+/* Thin scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1e2936 transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #1e2936;
+  border-radius: 3px;
+}
+
+/* Markdown-ish content inside chat bubbles */
+.prose-aura :is(p, ul, ol) {
+  @apply mb-2 last:mb-0;
+}
+.prose-aura ul {
+  @apply list-disc pl-5;
+}
+.prose-aura ol {
+  @apply list-decimal pl-5;
+}
+.prose-aura code {
+  @apply rounded bg-aura-raised px-1 py-0.5 font-mono text-[0.85em] text-aura-accent;
+}
+.prose-aura pre {
+  @apply mb-2 overflow-x-auto rounded-lg bg-aura-raised p-3;
+}
+.prose-aura pre code {
+  @apply bg-transparent p-0 text-aura-text;
+}
+.prose-aura strong {
+  @apply font-semibold text-aura-text;
+}
+
+/* iOS PWA safe areas */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}

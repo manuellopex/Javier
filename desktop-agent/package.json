@@ -1,0 +1,14 @@
+{
+  "name": "aura-desktop-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional local agent for AURA Command Center. Executes a small, allowlisted set of local actions with full audit logging. Zero dependencies.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
