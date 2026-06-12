@@ -2,6 +2,8 @@ export const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: '◧' },
   { href: '/chat', label: 'Chat', icon: '◍' },
   { href: '/tasks', label: 'Tasks', icon: '☰' },
+  { href: '/calendar', label: 'Calendar', icon: '◷' },
+  { href: '/clients', label: 'Clients', icon: '◎' },
   { href: '/memory', label: 'Memory', icon: '◈' },
   { href: '/commands', label: 'Commands', icon: '⌘' },
   { href: '/integrations', label: 'Integrations', icon: '⬡' },
@@ -10,5 +12,5 @@ export const NAV_ITEMS = [
 
 /** Subset shown in the mobile bottom navigation. */
 export const MOBILE_NAV = NAV_ITEMS.filter((i) =>
-  ['/dashboard', '/chat', '/tasks', '/commands', '/settings'].includes(i.href)
+  ['/dashboard', '/chat', '/tasks', '/calendar', '/commands'].includes(i.href)
 );

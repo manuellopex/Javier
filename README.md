@@ -11,6 +11,9 @@ Asistente personal privado estilo *mission control*: PWA oscura y minimalista co
 - **Tareas** — crear (UI o chat), listar, completar, borrar; prioridades y fechas.
 - **Memoria** — AURA guarda contexto útil; tú lo ves, agregas y borras. Se inyecta en cada conversación.
 - **Sistema de permisos** — riesgo LOW/MEDIUM/HIGH/CRITICAL; las acciones HIGH/CRITICAL crean comandos pendientes que **tú confirmas** en la UI. Todo auditado en `security_logs`.
+- **Calendario (Fase 3)** — calendario local + conector **Google Calendar** (OAuth): el asistente lee tu agenda, crea eventos en tu calendario real, y borrar siempre pide confirmación. Vista `/calendar` con agenda de 14 días.
+- **Email (Fase 3)** — AURA redacta libremente; **enviar** (vía Resend) siempre crea un comando que tú confirmas. Nunca se envía nada solo.
+- **CRM ligero (Fase 3)** — clientes y cotizaciones: «crea una cotización para Acme» genera el documento completo en markdown como borrador; lo gestionas en `/clients`. Setup: [docs/integrations.md](./docs/integrations.md).
 - **Apple Shortcuts** — `POST /api/shortcut/command` con API key personal: Siri → dictado → respuesta hablada.
 - **PWA** — instalable en iPhone, iPad, Mac y desktop; dark mode, sidebar en desktop, bottom nav en mobile.
 - **Desktop Agent** (opcional) — microservicio local con allowlist estricta y logs ([desktop-agent/](./desktop-agent/)).

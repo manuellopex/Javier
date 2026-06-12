@@ -75,6 +75,48 @@ export interface Command {
   resolved_at: string | null;
 }
 
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  all_day: boolean;
+  /** Where the event lives: AURA's own table or Google Calendar. */
+  source: 'local' | 'google';
+}
+
+export type ClientStatus = 'lead' | 'active' | 'archived';
+
+export interface Client {
+  id: string;
+  user_id: string;
+  name: string;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  status: ClientStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected';
+
+export interface Quote {
+  id: string;
+  user_id: string;
+  client_id: string;
+  title: string;
+  content: string;
+  amount: number | null;
+  currency: string;
+  status: QuoteStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Integration {
   id: string;
   user_id: string;

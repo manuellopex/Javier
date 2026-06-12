@@ -87,6 +87,122 @@ export const ASSISTANT_TOOLS: LLMToolDefinition[] = [
       required: ['query'],
     },
   },
+  // --- Calendar ---------------------------------------------------------------
+  {
+    name: 'list_events',
+    description:
+      "List the user's calendar events (local + Google Calendar when connected). Call this when the user asks about their schedule, agenda, availability, or wants to organize their day around meetings.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        from: { type: 'string', description: 'ISO 8601 range start (default: now)' },
+        to: { type: 'string', description: 'ISO 8601 range end (default: 14 days from now)' },
+      },
+    },
+  },
+  {
+    name: 'create_event',
+    description:
+      'Create a calendar event. Goes to Google Calendar when connected, otherwise to the local AURA calendar. Parse natural dates into ISO 8601. Default duration 60 minutes when the user gives only a start time.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        starts_at: { type: 'string', description: 'ISO 8601 start datetime' },
+        ends_at: { type: 'string', description: 'ISO 8601 end datetime (default: start + 60min)' },
+        description: { type: 'string' },
+        location: { type: 'string' },
+        all_day: { type: 'boolean' },
+      },
+      required: ['title', 'starts_at'],
+    },
+  },
+  {
+    name: 'delete_event',
+    description:
+      'Request deletion of a calendar event. HIGH-risk: creates a pending command requiring manual confirmation in the UI. Get id and source from list_events first. Tell the user confirmation is required.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        event_id: { type: 'string' },
+        source: { type: 'string', enum: ['local', 'google'] },
+        title: { type: 'string', description: 'Event title, for the confirmation message' },
+      },
+      required: ['event_id', 'source'],
+    },
+  },
+  // --- Email --------------------------------------------------------------------
+  {
+    name: 'send_email',
+    description:
+      'Request sending an email. HIGH-risk: it is NEVER sent directly — a pending command is created and the user must confirm it in the UI. Always show the user the full draft (to, subject, body) in your reply BEFORE or WHILE calling this. Plain text body, no markdown.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'Recipient email address' },
+        subject: { type: 'string' },
+        body: { type: 'string', description: 'Plain-text email body' },
+      },
+      required: ['to', 'subject', 'body'],
+    },
+  },
+  // --- CRM ------------------------------------------------------------------------
+  {
+    name: 'list_clients',
+    description:
+      "List the user's clients (lightweight CRM). Call before creating quotes or when the user references a client by name and you need the id.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['lead', 'active', 'archived', 'all'] },
+        query: { type: 'string', description: 'Filter by name/company substring' },
+      },
+    },
+  },
+  {
+    name: 'create_client',
+    description:
+      'Add a client to the CRM. Call when the user mentions a new client, lead, or contact worth tracking.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        company: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        notes: { type: 'string' },
+        status: { type: 'string', enum: ['lead', 'active'] },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'create_quote',
+    description:
+      'Create a quote/cotización for an existing client (use list_clients or create_client first to get client_id). Write the full quote body in markdown: scope, deliverables, terms, price breakdown. It is saved as a draft the user can review in the Clients view.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        client_id: { type: 'string' },
+        title: { type: 'string' },
+        content: { type: 'string', description: 'Full quote body in markdown' },
+        amount: { type: 'number', description: 'Total amount' },
+        currency: { type: 'string', description: 'ISO currency code, default USD' },
+      },
+      required: ['client_id', 'title', 'content'],
+    },
+  },
+  {
+    name: 'list_quotes',
+    description: 'List quotes, optionally for a single client.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        client_id: { type: 'string' },
+        status: { type: 'string', enum: ['draft', 'sent', 'accepted', 'rejected', 'all'] },
+      },
+    },
+  },
   {
     name: 'delete_memory',
     description:

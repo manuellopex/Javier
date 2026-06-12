@@ -13,7 +13,7 @@ export default async function DashboardPage() {
 
   const supabase = createClient();
 
-  const [tasksRes, commandsRes, conversationsRes, memoriesRes] = await Promise.all([
+  const [tasksRes, commandsRes, conversationsRes, memoriesRes, eventsRes] = await Promise.all([
     supabase
       .from('tasks')
       .select('id, title, priority, due_at, status')
@@ -38,12 +38,23 @@ export default async function DashboardPage() {
       .from('memories')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id),
+    supabase
+      .from('events')
+      .select('id, title, starts_at, all_day')
+      .eq('user_id', user.id)
+      .gte('starts_at', new Date().toISOString())
+      .lte('starts_at', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(5),
   ]);
 
   const tasks = tasksRes.data ?? [];
   const pendingCommands = commandsRes.data ?? [];
   const conversations = conversationsRes.data ?? [];
   const memoryCount = memoriesRes.count ?? 0;
+  // Local events only on the dashboard (fast, no external call);
+  // /calendar shows the merged view including Google.
+  const upcomingEvents = eventsRes.data ?? [];
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
@@ -151,6 +162,40 @@ export default async function DashboardPage() {
                       </li>
                     );
                   })}
+                </ul>
+              )}
+            </section>
+
+            {/* Upcoming events */}
+            <section className="glass p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-aura-muted">
+                  This week
+                </h3>
+                <Link href="/calendar" className="text-xs text-aura-accent">
+                  Calendar →
+                </Link>
+              </div>
+              {upcomingEvents.length === 0 ? (
+                <p className="text-sm text-aura-muted">Sin eventos próximos.</p>
+              ) : (
+                <ul className="space-y-2.5">
+                  {upcomingEvents.map((ev) => (
+                    <li key={ev.id} className="flex items-center gap-3 text-sm">
+                      <span className="w-20 shrink-0 font-mono text-xs text-aura-accent">
+                        {ev.all_day
+                          ? new Date(ev.starts_at).toLocaleDateString(undefined, {
+                              weekday: 'short',
+                            })
+                          : new Date(ev.starts_at).toLocaleDateString(undefined, {
+                              weekday: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                      </span>
+                      <span className="truncate">{ev.title}</span>
+                    </li>
+                  ))}
                 </ul>
               )}
             </section>

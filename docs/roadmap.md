@@ -7,11 +7,12 @@
 - [x] Orbe reactivo al audio (WebAudio AnalyserNode) con estados listening/thinking/speaking.
 - [ ] Pendiente fino: playback con MediaSource para latencia menor en respuestas largas; wake word.
 
-## Fase 3 — Integraciones
-- [ ] Calendario (Google Calendar / CalDAV): lectura LOW, escritura HIGH con confirmación.
-- [ ] Email (Gmail API / Resend): borradores LOW, envío HIGH — el ejecutor ya tiene su lugar en `/api/commands/confirm`.
-- [ ] CRM ligero: tabla `clients` + cotizaciones generadas por el asistente.
-- [ ] Vista /calendar en la UI.
+## Fase 3 — Integraciones ✅ (ver docs/integrations.md)
+- [x] Calendario: tabla `events` local + conector Google Calendar (OAuth, merge de fuentes); listar LOW, crear MEDIUM, borrar HIGH con confirmación.
+- [x] Email vía Resend: borradores LOW, envío HIGH ejecutado únicamente desde `/api/commands/confirm`.
+- [x] CRM ligero: tablas `clients` + `quotes`; cotizaciones en markdown generadas por el asistente, gestión de estados en la UI.
+- [x] Vistas /calendar (agenda 14 días) y /clients; página Integrations dinámica con connect/disconnect de Google.
+- [ ] Pendiente fino: sincronización bidireccional offline de Google (cache local), envío de cotizaciones como PDF adjunto.
 
 ## Fase 4 — Desktop Agent conectado
 - [ ] Registro del agente como `integration` (URL del túnel + key).

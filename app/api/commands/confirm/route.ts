@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { rateLimit, clientIp } from '@/lib/security/rate-limit';
 import { audit } from '@/lib/security/audit';
+import { getEmail, isValidEmail } from '@/services/email';
+import { deleteEvent } from '@/services/calendar';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -108,6 +110,27 @@ async function executeConfirmedCommand(
         .eq('id', String(payload.memory_id))
         .eq('user_id', userId);
       if (error) throw new Error(error.message);
+      return;
+    }
+    case 'delete_event': {
+      const source = payload.source === 'google' ? 'google' : 'local';
+      await deleteEvent(supabase, userId, String(payload.event_id), source);
+      return;
+    }
+    case 'send_email': {
+      const email = getEmail();
+      if (!email) {
+        throw new Error(
+          'Email is not configured. Set RESEND_API_KEY and EMAIL_FROM (see docs/integrations.md).'
+        );
+      }
+      const to = String(payload.to ?? '');
+      if (!isValidEmail(to)) throw new Error(`Invalid recipient: ${to}`);
+      await email.send({
+        to,
+        subject: String(payload.subject ?? '').slice(0, 300),
+        text: String(payload.body ?? '').slice(0, 50000),
+      });
       return;
     }
     default:

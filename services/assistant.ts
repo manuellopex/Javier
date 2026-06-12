@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getLLM, type LLMContentBlock, type LLMMessage } from '@/lib/ai';
+import { listEvents, createEvent } from '@/services/calendar';
+import { isValidEmail } from '@/services/email';
 import { ASSISTANT_TOOLS } from '@/lib/ai/tools';
 import { AURA_SYSTEM_PROMPT } from '@/lib/ai/system-prompt';
 import { requiresConfirmation, riskOf } from '@/lib/security/risk';
@@ -29,6 +31,11 @@ export async function executeTool(
   input: Record<string, unknown>
 ): Promise<ToolExecution> {
   const risk = riskOf(name);
+
+  // Fail fast on obviously invalid payloads before queuing a confirmation.
+  if (name === 'send_email' && !isValidEmail(String(input.to ?? ''))) {
+    return { result: `"${input.to}" is not a valid email address.`, isError: true };
+  }
 
   if (requiresConfirmation(name)) {
     const description = describeCommand(name, input);
@@ -173,6 +180,108 @@ async function runTool(
       return data?.length ? JSON.stringify(data) : 'No memories stored.';
     }
 
+    // --- Calendar -----------------------------------------------------------
+    case 'list_events': {
+      const from = input.from ? new Date(String(input.from)) : new Date();
+      const to = input.to
+        ? new Date(String(input.to))
+        : new Date(from.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const events = await listEvents(supabase, userId, {
+        from: from.toISOString(),
+        to: to.toISOString(),
+      });
+      return events.length ? JSON.stringify(events) : 'No events in that range.';
+    }
+
+    case 'create_event': {
+      const event = await createEvent(supabase, userId, {
+        title: String(input.title ?? ''),
+        starts_at: String(input.starts_at ?? ''),
+        ends_at: input.ends_at ? String(input.ends_at) : null,
+        description: input.description ? String(input.description) : null,
+        location: input.location ? String(input.location) : null,
+        all_day: Boolean(input.all_day),
+      });
+      return `Event created (${event.source}): ${JSON.stringify(event)}`;
+    }
+
+    // --- CRM ------------------------------------------------------------------
+    case 'list_clients': {
+      const status = String(input.status ?? 'all');
+      let query = supabase
+        .from('clients')
+        .select('id, name, company, email, phone, status, notes')
+        .eq('user_id', userId)
+        .order('name', { ascending: true })
+        .limit(100);
+      if (status !== 'all') query = query.eq('status', status);
+      if (input.query) {
+        const q = String(input.query).replaceAll('%', '').replaceAll(',', ' ');
+        query = query.or(`name.ilike.%${q}%,company.ilike.%${q}%`);
+      }
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return data?.length ? JSON.stringify(data) : 'No clients found.';
+    }
+
+    case 'create_client': {
+      const { data, error } = await supabase
+        .from('clients')
+        .insert({
+          user_id: userId,
+          name: String(input.name ?? '').slice(0, 200),
+          company: input.company ? String(input.company) : null,
+          email: input.email ? String(input.email) : null,
+          phone: input.phone ? String(input.phone) : null,
+          notes: input.notes ? String(input.notes) : null,
+          status: ['lead', 'active'].includes(String(input.status)) ? String(input.status) : 'lead',
+        })
+        .select('id, name, company, status')
+        .single();
+      if (error) throw new Error(error.message);
+      return `Client created: ${JSON.stringify(data)}`;
+    }
+
+    case 'create_quote': {
+      const { data: client } = await supabase
+        .from('clients')
+        .select('id, name')
+        .eq('id', String(input.client_id))
+        .eq('user_id', userId)
+        .single();
+      if (!client) throw new Error('Client not found — use list_clients or create_client first');
+
+      const { data, error } = await supabase
+        .from('quotes')
+        .insert({
+          user_id: userId,
+          client_id: client.id,
+          title: String(input.title ?? '').slice(0, 300),
+          content: String(input.content ?? '').slice(0, 20000),
+          amount: typeof input.amount === 'number' ? input.amount : null,
+          currency: input.currency ? String(input.currency).slice(0, 3).toUpperCase() : 'USD',
+        })
+        .select('id, title, amount, currency, status')
+        .single();
+      if (error) throw new Error(error.message);
+      return `Quote draft created for ${client.name}: ${JSON.stringify(data)}. The user can review it in the Clients view.`;
+    }
+
+    case 'list_quotes': {
+      const status = String(input.status ?? 'all');
+      let query = supabase
+        .from('quotes')
+        .select('id, client_id, title, amount, currency, status, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (status !== 'all') query = query.eq('status', status);
+      if (input.client_id) query = query.eq('client_id', String(input.client_id));
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return data?.length ? JSON.stringify(data) : 'No quotes found.';
+    }
+
     default:
       throw new Error(`Unknown tool "${name}"`);
   }
@@ -184,6 +293,10 @@ function describeCommand(action: string, input: Record<string, unknown>): string
       return `Delete task ${input.task_id}`;
     case 'delete_memory':
       return `Delete memory ${input.memory_id}`;
+    case 'delete_event':
+      return `Delete calendar event "${input.title ?? input.event_id}" (${input.source})`;
+    case 'send_email':
+      return `Send email to ${input.to} — "${String(input.subject ?? '').slice(0, 120)}"`;
     default:
       return `${action}: ${JSON.stringify(input).slice(0, 200)}`;
   }
