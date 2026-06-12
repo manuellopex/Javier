@@ -11,8 +11,19 @@ const STATUS_STYLES: Record<string, string> = {
   denied: 'border-aura-muted/40 text-aura-muted',
   failed: 'border-aura-danger/40 text-aura-danger',
   expired: 'border-aura-muted/40 text-aura-muted',
-  approved: 'border-aura-accent/40 text-aura-accent',
+  approved: 'border-aura-warn/40 text-aura-warn',
 };
+
+const STATUS_LABELS: Record<string, string> = {
+  approved: 'waiting agent',
+};
+
+interface DesktopResult {
+  ok: boolean;
+  output: unknown;
+  error: string | null;
+  finished_at: string;
+}
 
 export function CommandsView() {
   const [commands, setCommands] = useState<Command[]>([]);
@@ -110,19 +121,36 @@ export function CommandsView() {
               {resolved.length === 0 ? (
                 <p className="text-sm text-aura-muted">No resolved commands yet.</p>
               ) : (
-                resolved.map((c) => (
-                  <div key={c.id} className="glass flex items-center gap-3 px-4 py-3">
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${STATUS_STYLES[c.status] ?? ''}`}
-                    >
-                      {c.status}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm">{c.description}</span>
-                    <span className="shrink-0 text-[10px] text-aura-muted">
-                      {formatDate(c.created_at)}
-                    </span>
-                  </div>
-                ))
+                resolved.map((c) => {
+                  const result = (c.payload as Record<string, unknown>)?.result as
+                    | DesktopResult
+                    | undefined;
+                  return (
+                    <div key={c.id} className="glass px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${STATUS_STYLES[c.status] ?? ''}`}
+                        >
+                          {STATUS_LABELS[c.status] ?? c.status}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm">{c.description}</span>
+                        <span className="shrink-0 text-[10px] text-aura-muted">
+                          {formatDate(c.created_at)}
+                        </span>
+                      </div>
+                      {result && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-aura-muted">
+                            Desktop output
+                          </summary>
+                          <pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-aura-raised p-2 font-mono text-[10px] text-aura-text">
+                            {result.error ?? JSON.stringify(result.output, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </section>
           )}

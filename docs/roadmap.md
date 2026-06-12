@@ -24,10 +24,12 @@
 - [x] Vistas /calendar (agenda 14 días) y /clients; página Integrations dinámica con connect/disconnect de Google.
 - [ ] Pendiente fino: sincronización bidireccional offline de Google (cache local), envío de cotizaciones como PDF adjunto.
 
-## Fase 4 — Desktop Agent conectado
-- [ ] Registro del agente como `integration` (URL del túnel + key).
-- [ ] Tool `run_desktop_command` en el backend (ya clasificado HIGH) → ejecuta vía agente tras confirmación.
-- [ ] Túnel seguro recomendado: Tailscale.
+## Fase 4 — Desktop Agent conectado ✅ (ver desktop-agent/README.md)
+- [x] Modelo de polling saliente (sin túnel ni puertos abiertos): el agente recoge comandos aprobados y reporta resultados.
+- [x] Tool `run_desktop_command` (HIGH): chat → aprobación manual → ejecución local con allowlist (doble capa) → output en Approvals.
+- [x] Heartbeat del agente como `integration` (kind desktop_agent); badge online/offline en /integrations.
+- [x] Re-entrega con claim TTL (2 min) si el agente muere a mitad de ejecución.
+- [ ] Pendiente fino: empujar el resultado de vuelta a la conversación del chat; múltiples agentes (varias máquinas) con id por host.
 
 ## Fase 5 — Automatizaciones
 - [ ] Workflows: triggers (cron, evento) → pasos (tools) → confirmaciones.

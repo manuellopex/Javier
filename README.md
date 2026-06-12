@@ -17,7 +17,7 @@ Asistente personal privado estilo *mission control*: PWA oscura y minimalista co
 - **CRM ligero (Fase 3)** — clientes y cotizaciones: «crea una cotización para Acme» genera el documento completo en markdown como borrador; lo gestionas en `/clients`. Setup: [docs/integrations.md](./docs/integrations.md).
 - **Apple Shortcuts** — `POST /api/shortcut/command` con API key personal: Siri → dictado → respuesta hablada.
 - **PWA** — instalable en iPhone, iPad, Mac y desktop; dark mode, sidebar en desktop, bottom nav en mobile.
-- **Desktop Agent** (opcional) — microservicio local con allowlist estricta y logs ([desktop-agent/](./desktop-agent/)).
+- **Desktop Agent conectado (Fase 4)** — acciones en tu Mac/PC desde el chat: el asistente las solicita (HIGH), tú las apruebas, y el agente local las ejecuta vía **polling saliente** (sin puertos abiertos ni túneles) con su propia allowlist como segunda capa; el output aparece en Approvals ([desktop-agent/](./desktop-agent/)).
 
 ## Stack
 

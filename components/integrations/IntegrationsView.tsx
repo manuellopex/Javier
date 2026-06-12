@@ -10,6 +10,12 @@ interface Status {
   tts: { configured: boolean; provider: string | null };
   stt: { configured: boolean; provider: string | null };
   shortcuts: { configured: boolean };
+  desktopAgent: {
+    configured: boolean;
+    connected: boolean;
+    last_seen: string | null;
+    hostname: string | null;
+  };
 }
 
 function Badge({ on, labelOn, labelOff }: { on: boolean; labelOn: string; labelOff: string }) {
@@ -158,11 +164,21 @@ export function IntegrationsView() {
             <div className="glass p-4">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-sm font-medium">Desktop Agent</p>
-                <Badge on={false} labelOn="connected" labelOff="local · fase 4" />
+                <Badge
+                  on={Boolean(status?.desktopAgent.connected)}
+                  labelOn={`online · ${status?.desktopAgent.hostname ?? 'agent'}`}
+                  labelOff={status?.desktopAgent.configured ? 'offline' : 'needs setup'}
+                />
               </div>
               <p className="text-xs leading-relaxed text-aura-muted">
-                Microservicio local opcional con allowlist (carpeta desktop-agent/). La conexión
-                con el backend llega en Fase 4.
+                Acciones en tu Mac/PC con allowlist local. El asistente las solicita (HIGH), tú
+                las apruebas en Approvals, y el agente las ejecuta vía polling saliente — sin
+                puertos abiertos.{' '}
+                {!status?.desktopAgent.configured
+                  ? 'Configura DESKTOP_AGENT_KEY en el servidor y el bloque "backend" en desktop-agent/config.json.'
+                  : !status?.desktopAgent.connected
+                    ? 'El agente no reporta — arráncalo con npm start en desktop-agent/.'
+                    : 'Conectado.'}
               </p>
             </div>
           </div>

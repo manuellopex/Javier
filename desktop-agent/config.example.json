@@ -1,6 +1,11 @@
 {
   "port": 8787,
   "apiKey": "CHANGE-ME-generate-a-long-random-string",
+  "backend": {
+    "url": "https://TU-DOMINIO.vercel.app",
+    "agentKey": "CHANGE-ME-must-match-DESKTOP_AGENT_KEY-on-the-server",
+    "pollSeconds": 7
+  },
   "allowedFolders": [
     "~/AURA",
     "~/Documents/AURA"

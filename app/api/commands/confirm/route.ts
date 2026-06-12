@@ -56,6 +56,28 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, status: 'denied' });
   }
 
+  // Desktop actions are not executed here: approval hands them to the local
+  // desktop agent, which picks them up on its next poll (/api/desktop/poll)
+  // and reports the result back (/api/desktop/result).
+  if (command.action === 'run_desktop_command') {
+    await supabase
+      .from('commands')
+      .update({ status: 'approved' })
+      .eq('id', commandId);
+    await audit({
+      userId: user.id,
+      event: 'command.approved_for_desktop',
+      detail: { command_id: commandId, payload: command.payload },
+      risk: command.risk,
+      ip,
+    });
+    return Response.json({
+      ok: true,
+      status: 'approved',
+      note: 'Queued for the desktop agent. It executes on its next poll; the result will appear here.',
+    });
+  }
+
   try {
     await executeConfirmedCommand(supabase, user.id, command.action, command.payload);
     await supabase

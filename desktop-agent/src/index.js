@@ -20,6 +20,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { actions } from './actions.js';
 import { timingSafeEqual } from './security.js';
+import { startCloudConnector } from './cloud.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const configPath = path.join(root, 'config.json');
@@ -97,3 +98,15 @@ server.listen(config.port ?? 8787, '127.0.0.1', () => {
   log({ event: 'started', port: config.port ?? 8787 });
   console.log(`AURA desktop agent on http://127.0.0.1:${config.port ?? 8787}`);
 });
+
+// Fase 4: outbound polling connector to the AURA backend (optional).
+// Enable by adding a "backend" block to config.json — see config.example.json.
+if (config.backend?.url && config.backend?.agentKey) {
+  if (config.backend.agentKey.includes('CHANGE-ME')) {
+    console.error('Set a real backend.agentKey in config.json (must match DESKTOP_AGENT_KEY on the server).');
+  } else {
+    startCloudConnector(config, log);
+  }
+} else {
+  console.log('Cloud connector disabled (no "backend" block in config.json) — local mode only.');
+}

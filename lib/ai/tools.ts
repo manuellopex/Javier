@@ -439,6 +439,29 @@ export const TOOL_DEFINITIONS: Record<string, LLMToolDefinition> = {
   }),
 
   // === System ===============================================================
+  run_desktop_command: T({
+    name: 'run_desktop_command',
+    description:
+      "Request an action on the user's computer via the local AURA desktop agent: open_url {url}, open_app {app}, create_text_file {path, content}, read_folder {path}, move_file {from, to}, run_command {name} (named allowlist entry). HIGH-risk: ALWAYS queues a pending approval — after the user approves it, the desktop agent picks it up and executes locally (its own allowlist applies again). Tell the user their approval is required and the desktop agent must be running; the result appears in the Approvals view.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: [
+            'open_url', 'open_app', 'create_text_file',
+            'read_folder', 'move_file', 'run_command',
+          ],
+        },
+        params: {
+          type: 'object',
+          description: 'Parameters for the action (see the action list for shapes)',
+        },
+        reason: { type: 'string', description: 'One line: why this action, shown to the user' },
+      },
+      required: ['action', 'params'],
+    },
+  }),
   list_pending_approvals: T({
     name: 'list_pending_approvals',
     description:

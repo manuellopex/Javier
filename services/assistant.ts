@@ -102,6 +102,10 @@ function describeCommand(action: string, input: Record<string, unknown>): string
       return `Delete calendar event "${input.title ?? input.event_id}" (${input.source})`;
     case 'send_email':
       return `Send email to ${input.to} — "${String(input.subject ?? '').slice(0, 120)}"`;
+    case 'run_desktop_command': {
+      const params = JSON.stringify(input.params ?? {}).slice(0, 160);
+      return `Desktop: ${input.action} ${params}${input.reason ? ` — ${String(input.reason).slice(0, 100)}` : ''}`;
+    }
     default:
       return `${action}: ${JSON.stringify(input).slice(0, 200)}`;
   }
