@@ -14,6 +14,7 @@ build/
 .env.local
 .env*.local
 desktop-agent/config.json
+desktop-agent/agent.log
 
 # misc
 .DS_Store
