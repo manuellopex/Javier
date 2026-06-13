@@ -50,9 +50,19 @@ export function useSpeech({ lang = 'es-MX', onResult, onError, onEnd }: UseSpeec
     gotResultRef.current = false;
     manualStopRef.current = false;
 
-    const SpeechRecognition =
-      (window as unknown as Record<string, unknown>).SpeechRecognition ??
-      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    // iOS Safari exposes webkitSpeechRecognition but it is unreliable — it
+    // often stays "listening" and never returns a result. On iOS we skip the
+    // native API and go straight to the recorder → server STT path (Groq /
+    // Deepgram), which is robust there. Native is preferred only off-iOS,
+    // where it works well and has lower latency.
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    const SpeechRecognition = isIOS
+      ? undefined
+      : ((window as unknown as Record<string, unknown>).SpeechRecognition ??
+        (window as unknown as Record<string, unknown>).webkitSpeechRecognition);
 
     if (SpeechRecognition) {
       // --- Strategy 1: native speech recognition ---
