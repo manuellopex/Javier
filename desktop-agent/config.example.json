@@ -1,0 +1,22 @@
+{
+  "port": 8787,
+  "apiKey": "CHANGE-ME-generate-a-long-random-string",
+  "backend": {
+    "url": "https://TU-DOMINIO.vercel.app",
+    "agentKey": "CHANGE-ME-must-match-DESKTOP_AGENT_KEY-on-the-server",
+    "pollSeconds": 7
+  },
+  "allowedFolders": [
+    "~/AURA",
+    "~/Documents/AURA"
+  ],
+  "allowedApps": {
+    "darwin": ["Notes", "Calendar", "Safari", "Music"],
+    "win32": ["notepad.exe", "calc.exe"],
+    "linux": ["gedit"]
+  },
+  "allowedCommands": {
+    "git-status": { "cmd": "git", "args": ["status", "--short"], "cwd": "~/AURA" },
+    "disk-usage": { "cmd": "df", "args": ["-h"] }
+  }
+}

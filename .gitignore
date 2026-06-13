@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+desktop-agent/node_modules/
+
+# next.js
+.next/
+out/
+
+# production
+build/
+
+# env
+.env
+.env.local
+.env*.local
+desktop-agent/config.json
+desktop-agent/agent.log
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+*.tsbuildinfo
