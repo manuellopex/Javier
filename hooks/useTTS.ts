@@ -14,6 +14,27 @@ export function useTTS(lang = 'es-MX') {
   const [speaking, setSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const cancelledRef = useRef(false);
+  const primedRef = useRef(false);
+
+  /**
+   * iOS Safari only lets speech/audio start from a user gesture. Call this
+   * synchronously inside a tap/click handler (send button, mic) to "unlock"
+   * playback so a later programmatic speak() (after the async reply) works.
+   */
+  const prime = useCallback(() => {
+    if (primedRef.current || typeof window === 'undefined') return;
+    try {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(' ');
+        u.volume = 0;
+        window.speechSynthesis.speak(u);
+        window.speechSynthesis.resume();
+      }
+      primedRef.current = true;
+    } catch {
+      // ignore — falls back to whatever the browser allows
+    }
+  }, []);
 
   const stop = useCallback(() => {
     cancelledRef.current = true;
@@ -81,7 +102,7 @@ export function useTTS(lang = 'es-MX') {
     [lang, stop]
   );
 
-  return { speak, stop, speaking };
+  return { speak, stop, prime, speaking };
 }
 
 function speakWithBrowser(
@@ -106,5 +127,7 @@ function speakWithBrowser(
     utterance.onerror = () => resolve();
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
+    // iOS can leave the queue paused; nudge it.
+    window.speechSynthesis.resume();
   });
 }
