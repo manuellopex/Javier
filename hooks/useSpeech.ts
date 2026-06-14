@@ -29,6 +29,8 @@ export function useSpeech({ lang = 'es-MX', onResult, onError, onEnd }: UseSpeec
   const chunksRef = useRef<Blob[]>([]);
   const gotResultRef = useRef(false);
   const manualStopRef = useRef(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const silenceRafRef = useRef<number | null>(null);
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
   const onEndRef = useRef(onEnd);
@@ -40,6 +42,14 @@ export function useSpeech({ lang = 'es-MX', onResult, onError, onEnd }: UseSpeec
     manualStopRef.current = true;
     recognitionRef.current?.stop();
     recognitionRef.current = null;
+    if (silenceRafRef.current) {
+      cancelAnimationFrame(silenceRafRef.current);
+      silenceRafRef.current = null;
+    }
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
     if (recorderRef.current && recorderRef.current.state !== 'inactive') {
       recorderRef.current.stop();
     }
@@ -50,9 +60,19 @@ export function useSpeech({ lang = 'es-MX', onResult, onError, onEnd }: UseSpeec
     gotResultRef.current = false;
     manualStopRef.current = false;
 
-    const SpeechRecognition =
-      (window as unknown as Record<string, unknown>).SpeechRecognition ??
-      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    // iOS Safari exposes webkitSpeechRecognition but it is unreliable — it
+    // often stays "listening" and never returns a result. On iOS we skip the
+    // native API and go straight to the recorder → server STT path (Groq /
+    // Deepgram), which is robust there. Native is preferred only off-iOS,
+    // where it works well and has lower latency.
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    const SpeechRecognition = isIOS
+      ? undefined
+      : ((window as unknown as Record<string, unknown>).SpeechRecognition ??
+        (window as unknown as Record<string, unknown>).webkitSpeechRecognition);
 
     if (SpeechRecognition) {
       // --- Strategy 1: native speech recognition ---
@@ -88,6 +108,8 @@ export function useSpeech({ lang = 'es-MX', onResult, onError, onEnd }: UseSpeec
     }
 
     // --- Strategy 2: record audio, transcribe server-side ---
+    // Auto-stops after a pause once speech is detected, so the user just
+    // taps once and talks — no second tap needed.
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
@@ -95,6 +117,21 @@ export function useSpeech({ lang = 'es-MX', onResult, onError, onEnd }: UseSpeec
       recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        if (silenceRafRef.current) {
+          cancelAnimationFrame(silenceRafRef.current);
+          silenceRafRef.current = null;
+        }
+        if (audioCtxRef.current) {
+          void audioCtxRef.current.close();
+          audioCtxRef.current = null;
+        }
+        // Nothing captured (e.g. instant stop) — don't call the API.
+        const totalBytes = chunksRef.current.reduce((n, b) => n + b.size, 0);
+        if (totalBytes < 1200) {
+          setState('idle');
+          if (!manualStopRef.current) onEndRef.current?.(false);
+          return;
+        }
         setState('transcribing');
         try {
           const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
@@ -118,6 +155,60 @@ export function useSpeech({ lang = 'es-MX', onResult, onError, onEnd }: UseSpeec
       recorderRef.current = recorder;
       recorder.start();
       setState('listening');
+
+      // --- Silence detection (auto-stop) -----------------------------------
+      try {
+        const AudioCtx =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const ctx = new AudioCtx();
+        audioCtxRef.current = ctx;
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(analyser);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+
+        const startedAt = Date.now();
+        let speechStarted = false;
+        let lastLoudAt = Date.now();
+        const SILENCE_MS = 1400; // pause after speech that ends the turn
+        const MAX_MS = 20_000; // hard cap
+        const NO_SPEECH_TIMEOUT_MS = 6000; // give up if they never speak
+        const THRESHOLD = 0.04; // RMS level counted as "speaking"
+
+        const tick = () => {
+          if (!recorderRef.current || recorderRef.current.state === 'inactive') return;
+          analyser.getByteFrequencyData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) sum += data[i];
+          const level = sum / data.length / 255;
+          const now = Date.now();
+
+          if (level > THRESHOLD) {
+            speechStarted = true;
+            lastLoudAt = now;
+          }
+
+          const elapsed = now - startedAt;
+          const quietFor = now - lastLoudAt;
+          const shouldStop =
+            elapsed > MAX_MS ||
+            (speechStarted && quietFor > SILENCE_MS) ||
+            (!speechStarted && elapsed > NO_SPEECH_TIMEOUT_MS);
+
+          if (shouldStop) {
+            silenceRafRef.current = null;
+            // Guarded at the top of tick: state is 'recording' | 'paused' here.
+            recorderRef.current.stop();
+            return;
+          }
+          silenceRafRef.current = requestAnimationFrame(tick);
+        };
+        silenceRafRef.current = requestAnimationFrame(tick);
+      } catch {
+        // Analyser unavailable — falls back to manual tap-to-stop.
+      }
     } catch {
       setState('unsupported');
       onErrorRef.current?.('Microphone access denied or unsupported browser.');
