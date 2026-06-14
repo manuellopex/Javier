@@ -42,7 +42,7 @@ export function ChatView() {
   const handsFreeRef = useRef(false);
   const silentRoundsRef = useRef(0);
 
-  const { speak, stop: stopSpeaking, speaking } = useTTS(lang);
+  const { speak, stop: stopSpeaking, prime: primeTTS, speaking } = useTTS(lang);
 
   useEffect(() => {
     setTtsEnabled(localStorage.getItem('aura:tts') === 'on');
@@ -213,6 +213,7 @@ export function ChatView() {
     handsFreeRef.current = next;
     silentRoundsRef.current = 0;
     if (next) {
+      primeTTS(); // unlock audio while we have the user gesture
       startListening();
     } else {
       stopListening();
@@ -368,6 +369,7 @@ export function ChatView() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                primeTTS();
                 sendMessage(input);
               }}
               className="mx-auto flex max-w-3xl items-end gap-2"
@@ -378,6 +380,7 @@ export function ChatView() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
+                    primeTTS();
                     sendMessage(input);
                   }
                 }}
@@ -387,7 +390,10 @@ export function ChatView() {
               />
               <MicButton
                 state={speechState}
-                onStart={startListening}
+                onStart={() => {
+                  primeTTS(); // unlock spoken replies on this tap
+                  startListening();
+                }}
                 onStop={stopListening}
               />
               <button
